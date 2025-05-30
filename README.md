@@ -1,6 +1,8 @@
-# 🌐 AWS Multi-AZ Web Server Deployment with Load Balancer (Terraform)
+# 🚀 AWS Multi-AZ Web Server Deployment with Terraform + Jenkins CI
 
-This project sets up a **highly available web infrastructure** on AWS using **Terraform**.
+This project provisions a highly available infrastructure on AWS using Terraform, and automates provisioning and destruction using Jenkins.
+
+---
 
 ## ✅ What This Project Deploys
 
@@ -27,28 +29,42 @@ This project sets up a **highly available web infrastructure** on AWS using **Te
 
 ---
 
+## 🧰 Prerequisites
+
+### Tools
+
+- [Terraform](https://developer.hashicorp.com/terraform/downloads)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html)
+- [Jenkins](https://www.jenkins.io/download/) installed and running on Windows
+- AWS account with IAM user and Access/Secret keys
+- EC2 Key Pair already created in your AWS region
+
+---
+
 ## 📁 Project Structure
 
 ```
 aws-multi-az-webservers/
 ├── main.tf          # Main Terraform configuration
-├── variables.tf     # AWS region and key pair input
-├── outputs.tf       # ALB DNS output
-├── README.md        # Project documentation
+├── variables.tf     # AWS region and key pair
+├── outputs.tf       # Output the ALB DNS name
+├── README.md        # Documentation
 ```
-
 ---
 
 ## 🚀 Getting Started
 
-### 1. Clone This Repo
+### Clone This Repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/aws-multi-az-webservers.git
+git clone https://github.com/MadushanR/aws-multi-az-webservers.git
 cd aws-multi-az-webservers
 ```
+---
 
-### 2. Set Variables
+## ⚙️ Terraform Usage
+
+### 1. Configure Variables
 
 Edit `variables.tf`:
 
@@ -62,11 +78,9 @@ variable "key_name" {
 }
 ```
 
-> Replace `"your-key-name"` with your actual EC2 Key Pair.
+> Replace `your-key-name` with your EC2 Key Pair name.
 
----
-
-### 3. Deploy with Terraform
+### 2. Run Manually (Optional)
 
 ```bash
 terraform init
@@ -74,25 +88,72 @@ terraform plan
 terraform apply
 ```
 
-> After deployment, Terraform will output the ALB DNS name.
-
 ---
 
-## 🌐 Access the Web Servers
+## 🔄 Jenkins Automation (Windows Setup)
 
-Open the ALB DNS in your browser:
+### ✅ Jenkins Job Steps
 
-```bash
-http://<alb_dns_name>
+1. Create a **Freestyle Project**
+2. Check **"This project is parameterized"**
+   - Add `Choice Parameter`: `ACTION` with values `apply` and `destroy`
+3. Add **Build Step** → "Execute Windows batch command"
+
+### 📜 Jenkins Script
+
+```bat
+set AWS_ACCESS_KEY_ID=YOUR_KEY_ID
+set AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
+set AWS_DEFAULT_REGION=us-east-1
+
+cd `PATH_TO_TERRAFORM FILES`
+
+terraform init -input=false
+terraform plan -out=tfplan
+
+IF "%ACTION%"=="apply" (
+    terraform apply -auto-approve
+) ELSE IF "%ACTION%"=="destroy" (
+    terraform destroy -auto-approve
+) ELSE (
+    echo Invalid ACTION: %ACTION%
+    exit /b 1
+)
 ```
 
-You should see alternating messages from WebServer-A and WebServer-B.
+> Replace `YOUR_KEY_ID` and `YOUR_SECRET_KEY` or use Jenkins credentials securely.
 
 ---
 
-## 🧹 Clean Up
+### 🔐 Secure Credential Option (Recommended)
 
-To destroy the resources:
+Use Jenkins "Credentials" plugin:
+
+1. Add `aws-access-key-id` and `aws-secret-access-key` as **Secret Text**
+2. Bind these to environment variables in the job
+3. Modify batch script to use those variables
+
+---
+
+## 🌐 Access the Web Server
+
+After deployment:
+
+```bash
+terraform output alb_dns_name
+```
+
+Paste the DNS URL in your browser to access the load-balanced Apache servers.
+
+---
+
+## 🧹 Cleanup
+
+In Jenkins, choose:
+- `ACTION = destroy`
+- Run the job to tear down infrastructure
+
+Or manually:
 
 ```bash
 terraform destroy
@@ -100,13 +161,6 @@ terraform destroy
 
 ---
 
-## 🔐 Notes
-
-- SSH is open to all IPs (`0.0.0.0/0`) – for production, restrict to your IP only.
-- HTTPS is not configured – consider using ACM for SSL in real-world setups.
-
----
-
-## 📄 License
+## 📜 License
 
 MIT License. Free to use and modify.

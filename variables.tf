@@ -3,5 +3,5 @@ variable "aws_region" {
 }
 
 variable "key_name" {
-  default = "your-key-name"
+  default = "your_key_name"
 }
